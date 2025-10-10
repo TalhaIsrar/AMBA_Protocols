@@ -82,6 +82,51 @@ module ahb_to_apb_bridge #(
         endcase
     end
 
+    // Output logic
+    always_comb begin : OUTPUT_LOGIC
+
+        // Default Values for all outputs to avoid latches
+        HRDATA      = 0;
+        HRESP       = 0;
+        HREADY_OUT  = 0;
+        PSEL        = 0;
+        PENABLE     = 0;
+        PADDR       = 0;
+        PWRITE      = 0;
+        PWDATA      = 0;
+
+        case (current_state) 
+            ST_IDLE: begin
+                PSEL        = 1'b0;
+                PENABLE     = 1'b0;
+            end
+
+            ST_READ: 
+                ;
+            
+            ST_RENABLE: 
+                ; 
+            
+            ST_WENABLE:
+                ;
+
+            ST_WRITE:
+                ;
+
+            ST_WWAIT:
+                ;
+
+            ST_WRITEP:
+                ;
+
+            ST_WENABLEP:
+                ;
+
+            default: ;
+        endcase
+        
+    end
+
     // Valid Signal Combinational Logic
     always_comb begin : VALID
         // Transaction is valid only if slave (bridge) is selected
