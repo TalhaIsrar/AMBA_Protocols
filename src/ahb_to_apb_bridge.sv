@@ -28,6 +28,7 @@ module ahb_to_apb_bridge #(
 
     // Internal Signals
     logic valid;
+    logic HwriteReg;
 
     // State variable for state machine
     typedef enum logic [2:0]   {ST_IDLE     = 3'b000,
@@ -53,15 +54,31 @@ module ahb_to_apb_bridge #(
     // Next State Logic
     always_comb begin : NEXT_STATE_LOGIC
         case (current_state) 
-            ST_IDLE:
-            ST_READ:
-            ST_RENABLE:
+            ST_IDLE: 
+                next_state = valid ? (HWRITE ? ST_WWAIT : ST_READ) : ST_IDLE;
+            
+            ST_READ: 
+                next_state = ST_RENABLE;
+            
+            ST_RENABLE: 
+                next_state = valid ? (HWRITE ? ST_WWAIT : ST_READ) : ST_IDLE; 
+            
             ST_WENABLE:
+                next_state = valid ? (HWRITE ? ST_WWAIT : ST_READ) : ST_IDLE;
+
             ST_WRITE:
+                next_state = valid ? ST_WENABLEP : ST_WENABLE;
+
             ST_WWAIT:
+                next_state = valid ? ST_WRITEP : ST_WRITE;
+
             ST_WRITEP:
+                next_state = ST_WENABLEP;
+
             ST_WENABLEP:
-            default: 
+                next_state = HwriteReg ? (valid ? ST_WRITEP : ST_WRITE) : ST_READ;
+
+            default: next_state = ST_IDLE
         endcase
     end
 
