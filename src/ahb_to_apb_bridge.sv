@@ -26,6 +26,9 @@ module ahb_to_apb_bridge #(
     output logic [DATA_WIDTH - 1:0] PWDATA
 );
 
+    // Internal Signals
+    logic valid;
+
     // State variable for state machine
     typedef enum logic [2:0]   {ST_IDLE     = 3'b000,
                                 ST_READ     = 3'b001,
@@ -34,7 +37,7 @@ module ahb_to_apb_bridge #(
                                 ST_WRITE    = 3'b100,
                                 ST_WWAIT    = 3'b101,
                                 ST_WRITEP   = 3'b110,
-                                ST_WENABLE  = 3'b111} bridge_states;
+                                ST_WENABLEP = 3'b111} bridge_states;
 
     bridge_states current_state, next_state;
 
@@ -45,6 +48,28 @@ module ahb_to_apb_bridge #(
         end else begin
             current_state <= next_state;
         end 
+    end
+
+    // Next State Logic
+    always_comb begin : NEXT_STATE_LOGIC
+        case (current_state) 
+            ST_IDLE:
+            ST_READ:
+            ST_RENABLE:
+            ST_WENABLE:
+            ST_WRITE:
+            ST_WWAIT:
+            ST_WRITEP:
+            ST_WENABLEP:
+            default: 
+        endcase
+    end
+
+    // Valid Signal Combinational Logic
+    always_comb begin : VALID
+        // Transaction is valid only if slave (bridge) is selected
+        // & HTRANS is either NONSEQ or SEQ
+        valid = HSEL && HTRANS[1];
     end
 
 
