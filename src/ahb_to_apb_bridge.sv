@@ -110,7 +110,7 @@ module ahb_to_apb_bridge #(
                     PSEL        <= 1'b1;
                     PWRITE      <= 1'b0;
                     HREADY_OUT  <= 1'b0; // Insert Wait state
-                    HREADY_OUT  <= 1'b1;
+                    PENABLE     <= 1'b0;
                 end
                 
                 ST_RENABLE: begin // Completes APB read transcation and allows Masters to continue (ACCESS Phase APB)
@@ -126,6 +126,8 @@ module ahb_to_apb_bridge #(
 
                 ST_WRITE: begin // APB Write address phase (SETUP Phase APB)
                     PADDR       <= AddressReg; // Get write address from buffer
+                    AddressReg  <= HADDR;      // Buffer the address in case pipeline writes
+                    HwriteReg   <= 1'b1;       // Buffer write req in case write after write
                     PWDATA      <= HWDATA;
                     PSEL        <= 1'b1;
                     PENABLE     <= 1'b0;
@@ -141,12 +143,17 @@ module ahb_to_apb_bridge #(
                 end
 
                 ST_WRITEP: begin // Pending WRITE Phase after current transfer
-                    PADDR       <= HADDR;
+                    PADDR       <= AddressReg; // Get write address from buffer
+                    AddressReg  <= HADDR;      // Buffer the address in case pipeline writes
+                    HwriteReg   <= HWRITE;     // Buffer write req in case write after write
+                    PWDATA      <= HWDATA;
                     PSEL        <= 1'b1;
+                    PENABLE     <= 1'b0;
                     PWRITE      <= 1'b1;
+                    HREADY_OUT  <= 1'b0;
                 end
 
-                ST_WENABLEP: begin // APN enable phase for write (ACCESS Phase APB)
+                ST_WENABLEP: begin // APB enable phase for write (ACCESS Phase APB)
                     PENABLE     <= 1'b1;
                     HREADY_OUT  <= 1'b1;
                 end
