@@ -37,6 +37,17 @@ module ahb_to_apb_bridge_tb;
         .PWDATA     (apb_bus.PWDATA)
     );
 
+    apb_mem slave (
+        .PCLK     (PCLK),
+        .PRESETn  (PRESETn),
+        .PADDR    (apb_bus.PADDR),
+        .PWDATA   (apb_bus.PWDATA),
+        .PWRITE   (apb_bus.PWRITE),
+        .PSEL     (apb_bus.PSEL),
+        .PENABLE  (apb_bus.PENABLE),
+        .PRDATA   (apb_bus.PRDATA)
+    );
+
     // Clock generation
     initial begin
         HCLK = 0;
