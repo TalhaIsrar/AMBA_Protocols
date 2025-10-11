@@ -1,4 +1,4 @@
-'timescale 1ns/1ps
+`timescale 1ns/1ps
 
 module ahb_to_apb_bridge_tb;
 
@@ -54,30 +54,46 @@ module ahb_to_apb_bridge_tb;
     end
 
     // Simple AHB Master Tasks
+    // AHB Write: address phase then data phase
     task ahb_master_write(input logic [31:0] addr, input logic [31:0] data);
+        // Address phase
         @(posedge HCLK);
         ahb_bus.HSEL      <= 1'b1;
-        ahb_bus.HTRANS    <= 2'b10;
+        ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b1;
         ahb_bus.HADDR     <= addr;
-        ahb_bus.HWDATA    <= data;
         ahb_bus.HREADY_IN <= 1'b1;
+
+        // Data phase (next cycle)
+        @(posedge HCLK);
+        ahb_bus.HWDATA    <= data;
+
+        // Return to IDLE
         @(posedge HCLK);
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
     endtask
 
+
+    // AHB Read: address phase, then capture HRDATA after data phase
     task ahb_master_read(input logic [31:0] addr);
+        // Address phase
         @(posedge HCLK);
         ahb_bus.HSEL      <= 1'b1;
-        ahb_bus.HTRANS    <= 2'b10;
+        ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b0;
         ahb_bus.HADDR     <= addr;
         ahb_bus.HREADY_IN <= 1'b1;
+
+        // Data phase — HRDATA is valid here
+        @(posedge HCLK);
+
+        // Return to IDLE
         @(posedge HCLK);
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
     endtask
+
 
     // Stimulus
     initial begin
