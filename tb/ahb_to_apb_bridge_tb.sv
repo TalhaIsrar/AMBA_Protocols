@@ -64,11 +64,23 @@ module ahb_to_apb_bridge_tb;
         HRESETn = 1;
     end
 
+    // Reset initial input signals
+    initial begin
+        ahb_bus.HSEL      <= 1'b0;
+        ahb_bus.HTRANS    <= 2'b00;  
+        ahb_bus.HWRITE    <= 1'b0;
+        ahb_bus.HADDR     <= '0;
+        ahb_bus.HREADY_IN <= 1'b0;
+        ahb_bus.HWDATA    <= '0;
+
+        apb_bus.PRDATA    <= '0;
+    end
+
     // Simple AHB Master Tasks
     // AHB Write: address phase then data phase
     task ahb_master_write(input logic [31:0] addr, input logic [31:0] data);
         // Address phase
-        @(posedge HCLK);
+        @(negedge HCLK);
         ahb_bus.HSEL      <= 1'b1;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b1;
@@ -76,11 +88,10 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HREADY_IN <= 1'b1;
 
         // Data phase (next cycle)
-        @(posedge HCLK);
+        @(negedge HCLK);
         ahb_bus.HWDATA    <= data;
-
+        
         // Return to IDLE
-        @(posedge HCLK);
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
     endtask
@@ -89,7 +100,7 @@ module ahb_to_apb_bridge_tb;
     // AHB Read: address phase, then capture HRDATA after data phase
     task ahb_master_read(input logic [31:0] addr);
         // Address phase
-        @(posedge HCLK);
+        @(negedge HCLK);
         ahb_bus.HSEL      <= 1'b1;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b0;
@@ -97,10 +108,10 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HREADY_IN <= 1'b1;
 
         // Data phase — HRDATA is valid here
-        @(posedge HCLK);
+        @(negedge HCLK);
 
         // Return to IDLE
-        @(posedge HCLK);
+        @(negedge HCLK);
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
     endtask
