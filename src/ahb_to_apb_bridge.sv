@@ -105,42 +105,50 @@ module ahb_to_apb_bridge #(
                     HREADY_OUT  <= 1'b1;
                 end
 
-                ST_READ: begin // Starts APB read transcation
+                ST_READ: begin // Starts APB read transcation (SETUP Phase APB)
                     PADDR       <= HADDR;
                     PSEL        <= 1'b1;
                     PWRITE      <= 1'b0;
                     HREADY_OUT  <= 1'b0; // Insert Wait state
+                    HREADY_OUT  <= 1'b1;
                 end
                 
-                ST_RENABLE: begin // Completes APB read transcation and allows Masters to continue
+                ST_RENABLE: begin // Completes APB read transcation and allows Masters to continue (ACCESS Phase APB)
                     PENABLE     <= 1'b1;
                     HRDATA      <= PRDATA;
                     HREADY_OUT  <= 1'b1;
                 end
 
-                ST_WENABLE: begin
+                ST_WENABLE: begin // APB enable phase for write
                     PENABLE     <= 1'b1;
+                    HREADY_OUT  <= 1'b1;
                 end
 
-                ST_WRITE: begin
-                    PADDR       <= HADDR;
+                ST_WRITE: begin // APB Write address phase (SETUP Phase APB)
+                    PADDR       <= AddressReg; // Get write address from buffer
+                    PWDATA      <= HWDATA;
                     PSEL        <= 1'b1;
+                    PENABLE     <= 1'b0;
                     PWRITE      <= 1'b1;
+                    HREADY_OUT  <= 1'b0;
                 end
 
                 ST_WWAIT: begin // Waits for AHB write data to become valid
-                    
-                    HREADY_OUT  <= 1'b0; // Insert Wait state
+                    AddressReg  <= HADDR;  // Buffer the address
+                    HwriteReg   <= HWRITE; // Buffer write request
+                    HREADY_OUT  <= 1'b0;   // Insert Wait state
+                    PENABLE     <= 1'b0;
                 end
 
-                ST_WRITEP: begin
+                ST_WRITEP: begin // Pending WRITE Phase after current transfer
                     PADDR       <= HADDR;
                     PSEL        <= 1'b1;
                     PWRITE      <= 1'b1;
                 end
 
-                ST_WENABLEP: begin
-                    ;
+                ST_WENABLEP: begin // APN enable phase for write (ACCESS Phase APB)
+                    PENABLE     <= 1'b1;
+                    HREADY_OUT  <= 1'b1;
                 end
 
                 default: begin
