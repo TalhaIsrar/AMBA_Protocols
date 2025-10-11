@@ -30,6 +30,9 @@ module ahb_to_apb_bridge #(
     logic valid;
     logic HwriteReg;
 
+    logic [ADDR_WIDTH - 1:0] AddressReg;
+    logic [DATA_WIDTH - 1:0] DataReg;
+
     // State variable for state machine
     typedef enum logic [2:0]   {ST_IDLE     = 3'b000,
                                 ST_READ     = 3'b001,
@@ -83,49 +86,77 @@ module ahb_to_apb_bridge #(
     end
 
     // Output logic
-    always_comb begin : OUTPUT_LOGIC
+    // Synchronous because according to spec, old values are needed
+    always_ff @(posedge HCLK or negedge HRESETn) begin
+        if (!HRESETn) begin
+            HRDATA      <= 0;
+            HRESP       <= 0;
+            HREADY_OUT  <= 0;
+            PSEL        <= 0;
+            PENABLE     <= 0;
+            PADDR       <= 0;
+            PWRITE      <= 0;
+            PWDATA      <= 0;
+        end else begin
+            case (current_state) 
+                ST_IDLE: begin // Bridge is IDLE, no APB Transfer happening
+                    PSEL        <= 1'b0;
+                    PENABLE     <= 1'b0;
+                    HREADY_OUT  <= 1'b1;
+                end
 
-        // Default Values for all outputs to avoid latches
-        HRDATA      = 0;
-        HRESP       = 0;
-        HREADY_OUT  = 0;
-        PSEL        = 0;
-        PENABLE     = 0;
-        PADDR       = 0;
-        PWRITE      = 0;
-        PWDATA      = 0;
+                ST_READ: begin // Starts APB read transcation
+                    PADDR       <= HADDR;
+                    PSEL        <= 1'b1;
+                    PWRITE      <= 1'b0;
+                    HREADY_OUT  <= 1'b0; // Insert Wait state
+                end
+                
+                ST_RENABLE: begin // Completes APB read transcation and allows Masters to continue
+                    PENABLE     <= 1'b1;
+                    HRDATA      <= PRDATA;
+                    HREADY_OUT  <= 1'b1;
+                end
 
-        case (current_state) 
-            ST_IDLE: begin
-                PSEL        = 1'b0;
-                PENABLE     = 1'b0;
-            end
+                ST_WENABLE: begin
+                    PENABLE     <= 1'b1;
+                end
 
-            ST_READ: 
-                ;
-            
-            ST_RENABLE: 
-                ; 
-            
-            ST_WENABLE:
-                ;
+                ST_WRITE: begin
+                    PADDR       <= HADDR;
+                    PSEL        <= 1'b1;
+                    PWRITE      <= 1'b1;
+                end
 
-            ST_WRITE:
-                ;
+                ST_WWAIT: begin // Waits for AHB write data to become valid
+                    
+                    HREADY_OUT  <= 1'b0; // Insert Wait state
+                end
 
-            ST_WWAIT:
-                ;
+                ST_WRITEP: begin
+                    PADDR       <= HADDR;
+                    PSEL        <= 1'b1;
+                    PWRITE      <= 1'b1;
+                end
 
-            ST_WRITEP:
-                ;
+                ST_WENABLEP: begin
+                    ;
+                end
 
-            ST_WENABLEP:
-                ;
-
-            default: ;
-        endcase
-        
+                default: begin
+                    HRDATA      <= 0;
+                    HRESP       <= 0;
+                    HREADY_OUT  <= 0;
+                    PSEL        <= 0;
+                    PENABLE     <= 0;
+                    PADDR       <= 0;
+                    PWRITE      <= 0;
+                    PWDATA      <= 0;
+                end
+            endcase
+        end
     end
+
 
     // Valid Signal Combinational Logic
     always_comb begin : VALID
