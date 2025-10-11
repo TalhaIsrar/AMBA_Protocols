@@ -27,21 +27,23 @@ module ahb_to_apb_bridge #(
 );
 
     // Internal Signals
-    logic valid;
-    logic HwriteReg;
+    logic valid;                            // AHB transfer valid
+    logic HwriteReg;                        // Registered HWRITE
 
-    logic [ADDR_WIDTH - 1:0] AddressReg;
-    logic [DATA_WIDTH - 1:0] DataReg;
+    logic [ADDR_WIDTH - 1:0] AddressReg;    // Buffered address (for APB SETUP)
+    logic [DATA_WIDTH - 1:0] DataReg;       // Buffered write data
 
     // State variable for state machine
-    typedef enum logic [2:0]   {ST_IDLE     = 3'b000,
-                                ST_READ     = 3'b001,
-                                ST_RENABLE  = 3'b010,
-                                ST_WENABLE  = 3'b011,
-                                ST_WRITE    = 3'b100,
-                                ST_WWAIT    = 3'b101,
-                                ST_WRITEP   = 3'b110,
-                                ST_WENABLEP = 3'b111} bridge_states;
+    typedef enum logic [2:0] {
+        ST_IDLE     = 3'b000,
+        ST_READ     = 3'b001,
+        ST_RENABLE  = 3'b010,
+        ST_WENABLE  = 3'b011,
+        ST_WRITE    = 3'b100,
+        ST_WWAIT    = 3'b101,
+        ST_WRITEP   = 3'b110,
+        ST_WENABLEP = 3'b111
+    } bridge_states;
 
     bridge_states current_state, next_state;
 
@@ -81,7 +83,7 @@ module ahb_to_apb_bridge #(
             ST_WENABLEP:
                 next_state = HwriteReg ? (valid ? ST_WRITEP : ST_WRITE) : ST_READ;
 
-            default: next_state = ST_IDLE
+            default: next_state = ST_IDLE;
         endcase
     end
 
@@ -90,13 +92,17 @@ module ahb_to_apb_bridge #(
     always_ff @(posedge HCLK or negedge HRESETn) begin
         if (!HRESETn) begin
             HRDATA      <= 0;
-            HRESP       <= 0;
-            HREADY_OUT  <= 0;
+            HRESP       <= 2'b00;       // Always OKAY
+            HREADY_OUT  <= 1'b1;
             PSEL        <= 0;
             PENABLE     <= 0;
             PADDR       <= 0;
             PWRITE      <= 0;
             PWDATA      <= 0;
+            
+            // Internal Signals
+            HwriteReg   <= 0;
+            AddressReg  <= 0;
         end else begin
             case (current_state) 
                 ST_IDLE: begin // Bridge is IDLE, no APB Transfer happening
@@ -160,8 +166,8 @@ module ahb_to_apb_bridge #(
 
                 default: begin
                     HRDATA      <= 0;
-                    HRESP       <= 0;
-                    HREADY_OUT  <= 0;
+                    HRESP       <= 2'b00;       // Always OKAY
+                    HREADY_OUT  <= 1'b1;
                     PSEL        <= 0;
                     PENABLE     <= 0;
                     PADDR       <= 0;
@@ -172,12 +178,11 @@ module ahb_to_apb_bridge #(
         end
     end
 
-
     // Valid Signal Combinational Logic
     always_comb begin : VALID
         // Transaction is valid only if slave (bridge) is selected
         // & HTRANS is either NONSEQ or SEQ
-        valid = HSEL && HTRANS[1];
+        valid = HSEL && HTRANS[1] && HREADY_IN;
     end
 
 
