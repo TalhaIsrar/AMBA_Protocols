@@ -103,7 +103,16 @@ module ahb_to_apb_bridge #(
             // Internal Signals
             HwriteReg   <= 0;
             AddressReg  <= 0;
+            DataReg     <= 0;
+
         end else begin
+            if (valid) begin
+                AddressReg <= HADDR;
+                HwriteReg  <= HWRITE;
+            end
+
+            HRDATA      <= PRDATA;
+            
             case (current_state) 
                 ST_IDLE: begin // Bridge is IDLE, no APB Transfer happening
                     PSEL        <= 1'b0;
@@ -121,7 +130,6 @@ module ahb_to_apb_bridge #(
                 
                 ST_RENABLE: begin // Completes APB read transcation and allows Masters to continue (ACCESS Phase APB)
                     PENABLE     <= 1'b1;
-                    HRDATA      <= PRDATA;
                     HREADY_OUT  <= 1'b1;
                 end
 
@@ -142,8 +150,6 @@ module ahb_to_apb_bridge #(
                 end
 
                 ST_WWAIT: begin // Waits for AHB write data to become valid
-                    AddressReg  <= HADDR;  // Buffer the address
-                    HwriteReg   <= HWRITE; // Buffer write request
                     HREADY_OUT  <= 1'b0;   // Insert Wait state
                     PENABLE     <= 1'b0;
                 end

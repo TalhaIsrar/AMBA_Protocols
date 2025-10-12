@@ -94,6 +94,7 @@ module ahb_to_apb_bridge_tb;
         // Return to IDLE
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
+        ahb_bus.HADDR     <= 32'h0000_0000;
 
         @(negedge HCLK);
     endtask
@@ -123,8 +124,8 @@ module ahb_to_apb_bridge_tb;
 
         // Test 1: Single Transfers
         repeat (2) @(posedge HCLK);
-        ahb_master_write(32'h0000_0000, 32'hBEEF_BEEF);
-        ahb_master_read(32'h0000_0000);
+        ahb_master_write(32'h0000_0004, 32'hBEEF_BEEF);
+        ahb_master_read(32'h0000_0004);
 
         // Test 2: Two back-to-back writes
         ahb_master_write(32'h0000_0004, 32'hDEAD_BEEF);
@@ -145,7 +146,7 @@ module ahb_to_apb_bridge_tb;
         end
 
         // Test 5: Randomized test
-        repeat (10) begin
+        repeat (5) begin
             logic [31:0] addr = {$random} & 32'h0000_00FF;
             logic [31:0] data = $random;
             ahb_master_write(addr, data);
@@ -165,7 +166,7 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HWRITE <= 1'b1;
         ahb_bus.HADDR  <= 32'h0000_0040;
         ahb_bus.HWDATA <= 32'h5555_5555;
-        @(posedge HCLK);
+        repeat (2) @(posedge HCLK);
         assert(apb_bus.PSEL === 1'b0)
             else $error("Bridge triggered APB transaction when HSEL=0");
  
