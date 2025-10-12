@@ -94,8 +94,9 @@ module ahb_to_apb_bridge_tb;
         // Return to IDLE
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
-    endtask
 
+        @(negedge HCLK);
+    endtask
 
     // AHB Read: address phase, then capture HRDATA after data phase
     task ahb_master_read(input logic [31:0] addr);
@@ -107,24 +108,74 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HADDR     <= addr;
         ahb_bus.HREADY_IN <= 1'b1;
 
-        // Data phase — HRDATA is valid here
-        @(negedge HCLK);
-
         // Return to IDLE
         @(negedge HCLK);
         ahb_bus.HTRANS    <= 2'b00;
         ahb_bus.HSEL      <= 1'b0;
+
+        @(negedge HCLK);
     endtask
 
 
     // Stimulus
     initial begin
         @(posedge HRESETn);
+
+        // Test 1: Single Transfers
         repeat (2) @(posedge HCLK);
+        ahb_master_write(32'h0000_0000, 32'hBEEF_BEEF);
+        ahb_master_read(32'h0000_0000);
+
+        // Test 2: Two back-to-back writes
         ahb_master_write(32'h0000_0004, 32'hDEAD_BEEF);
-        repeat (2) @(posedge HCLK);
-        ahb_master_read(32'h0000_0004);
-        repeat (5) @(posedge HCLK);
+        ahb_master_write(32'h0000_0008, 32'hBEEF_CAFE);
+
+        // Test 3: Back-to-back read after write
+        ahb_master_write(32'h0000_000C, 32'hFACE_FEED);
+        ahb_master_read(32'h0000_000C); 
+
+        // Test 4: Sequential address writes
+        for (int i = 0; i < 4; i++) begin
+            ahb_master_write(32'h0000_0020 + i*4, 32'h1000_0000 + i);
+        end
+
+        // Sequential reads
+        for (int i = 0; i < 4; i++) begin
+            ahb_master_read(32'h0000_0020 + i*4);
+        end
+
+        // Test 5: Randomized test
+        repeat (10) begin
+            logic [31:0] addr = {$random} & 32'h0000_00FF;
+            logic [31:0] data = $random;
+            ahb_master_write(addr, data);
+            ahb_master_read(addr);
+        end
+
+        // Test 6: Alternating operations
+        ahb_master_write(32'h0000_0030, 32'hAAAA_0001);
+        ahb_master_read(32'h0000_0030);
+        ahb_master_write(32'h0000_0034, 32'hBBBB_0002);
+        ahb_master_read(32'h0000_0034);
+
+        // Test 7: No valid transfer when HSEL=0
+        @(negedge HCLK);
+        ahb_bus.HSEL   <= 1'b0;
+        ahb_bus.HTRANS <= 2'b00;
+        ahb_bus.HWRITE <= 1'b1;
+        ahb_bus.HADDR  <= 32'h0000_0040;
+        ahb_bus.HWDATA <= 32'h5555_5555;
+        @(posedge HCLK);
+        assert(apb_bus.PSEL === 1'b0)
+            else $error("Bridge triggered APB transaction when HSEL=0");
+ 
+        // Test 8: Idle period test
+        ahb_master_write(32'h0000_0050, 32'hCAFEBEEF);
+        repeat(10) @(posedge HCLK);  // idle gap
+        ahb_master_read(32'h0000_0050);
+
+        repeat(5) @(posedge HCLK);
+        $display("All tests executed!");
         $finish;
     end
 
