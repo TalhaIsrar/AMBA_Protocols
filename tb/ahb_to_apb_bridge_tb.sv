@@ -158,6 +158,45 @@ module ahb_to_apb_bridge_tb;
         @(negedge HCLK);
     endtask
 
+    // AHB Pipelined Read
+    task ahb_master_pipelined_read(input logic [31:0] addr1, addr2);
+        // Address phase
+        @(negedge HCLK);
+        ahb_bus.HSEL      <= 1'b1;
+        ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
+        ahb_bus.HWRITE    <= 1'b0;
+        ahb_bus.HADDR     <= addr1;
+        ahb_bus.HREADY_IN <= 1'b1;
+
+        // Wait for bridge ready before proceeding to data phase
+        @(posedge HCLK);
+        #1
+        wait (ahb_bus.HREADY_OUT == 1'b1);
+
+        // Data phase of first, address phase of second
+        @(negedge HCLK);
+        ahb_bus.HADDR  <= addr2;
+
+        // Again, wait for bridge ready before data phase 2
+        @(posedge HCLK);
+        #1
+        wait (ahb_bus.HREADY_OUT == 1'b1);
+    
+        // Data phase 2
+        @(negedge HCLK);
+
+        ahb_bus.HTRANS <= 2'b00;
+        ahb_bus.HSEL   <= 1'b0;
+        ahb_bus.HADDR  <= 32'h0;
+
+        @(posedge HCLK);
+        #1
+        wait (ahb_bus.HREADY_OUT == 1'b1);
+
+        @(negedge HCLK);  
+
+    endtask
+
     // Stimulus
     initial begin
         @(posedge HRESETn);
@@ -219,6 +258,9 @@ module ahb_to_apb_bridge_tb;
         // Test 9 : Pipelined Write
         ahb_master_pipelined_write(32'h0000_0010, 32'h0000_0014,
                                    32'h0000_1234, 32'h0000_4321);
+
+        // Test 10: Pipelined Read
+        ahb_master_pipelined_read(32'h0000_0010, 32'h0000_0014);
 
         repeat(5) @(posedge HCLK);
         $display("All tests executed!");
