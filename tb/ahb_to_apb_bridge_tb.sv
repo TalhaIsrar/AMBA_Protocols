@@ -22,7 +22,6 @@ module ahb_to_apb_bridge_tb;
         .HADDR      (ahb_bus.HADDR),
         .HTRANS     (ahb_bus.HTRANS),
         .HWRITE     (ahb_bus.HWRITE),
-        .HREADY_IN  (ahb_bus.HREADY_IN),
         .HWDATA     (ahb_bus.HWDATA),
         .HRDATA     (ahb_bus.HRDATA),
         .HRESP      (ahb_bus.HRESP),
@@ -70,7 +69,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b00;  
         ahb_bus.HWRITE    <= 1'b0;
         ahb_bus.HADDR     <= '0;
-        ahb_bus.HREADY_IN <= 1'b0;
         ahb_bus.HWDATA    <= '0;
 
         apb_bus.PRDATA    <= '0;
@@ -85,7 +83,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b1;
         ahb_bus.HADDR     <= addr;
-        ahb_bus.HREADY_IN <= 1'b1;
 
         // Data phase (next cycle)
         @(negedge HCLK);
@@ -107,7 +104,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b0;
         ahb_bus.HADDR     <= addr;
-        ahb_bus.HREADY_IN <= 1'b1;
 
         // Return to IDLE
         @(negedge HCLK);
@@ -126,7 +122,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b1;
         ahb_bus.HADDR     <= addr1;
-        ahb_bus.HREADY_IN <= 1'b1;
 
         // Wait for bridge ready before proceeding to data phase
         @(posedge HCLK);
@@ -167,7 +162,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b1;
         ahb_bus.HADDR     <= addr1;
-        ahb_bus.HREADY_IN <= 1'b1;
 
         // Wait for bridge ready before proceeding to data phase
         @(posedge HCLK);
@@ -207,7 +201,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b0;
         ahb_bus.HADDR     <= addr1;
-        ahb_bus.HREADY_IN <= 1'b1;
 
         // Wait for bridge ready before proceeding to data phase
         @(posedge HCLK);
@@ -247,7 +240,6 @@ module ahb_to_apb_bridge_tb;
         ahb_bus.HTRANS    <= 2'b10;   // NONSEQ
         ahb_bus.HWRITE    <= 1'b0;
         ahb_bus.HADDR     <= addr1;
-        ahb_bus.HREADY_IN <= 1'b1;
 
         // Wait for bridge ready before proceeding to data phase
         @(posedge HCLK);

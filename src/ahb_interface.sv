@@ -10,7 +10,6 @@ interface ahb_interface #(
     logic [ADDR_WIDTH-1:0]    HADDR;
     logic [1:0]               HTRANS;
     logic                     HWRITE;
-    logic                     HREADY_IN;
     logic [DATA_WIDTH-1:0]    HWDATA;
 
     logic [DATA_WIDTH-1:0]    HRDATA;
@@ -19,12 +18,12 @@ interface ahb_interface #(
 
     // Modports
     modport master (
-        output HSEL, HADDR, HTRANS, HWRITE, HREADY_IN, HWDATA,
+        output HSEL, HADDR, HTRANS, HWRITE, HWDATA,
         input  HRDATA, HRESP, HREADY_OUT
     );
 
     modport slave (
-        input  HSEL, HADDR, HTRANS, HWRITE, HREADY_IN, HWDATA,
+        input  HSEL, HADDR, HTRANS, HWRITE, HWDATA,
         output HRDATA, HRESP, HREADY_OUT
     );
 

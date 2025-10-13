@@ -9,7 +9,6 @@ module ahb_to_apb_bridge #(
     input logic  [ADDR_WIDTH - 1:0] HADDR,
     input logic  [1:0]              HTRANS,     // IDLE, BUSY, SEQ, NONSEQ
     input logic                     HWRITE,     // 1 =  Write, 0 = Read
-    input logic                     HREADY_IN,
     input logic  [DATA_WIDTH - 1:0] HWDATA,
 
     output logic [DATA_WIDTH - 1:0] HRDATA,
@@ -28,22 +27,22 @@ module ahb_to_apb_bridge #(
 
     // Internal Signals
     logic valid;                            // AHB transfer valid
+    logic APBen;                            // Enable signal for new APB transcation
 
     logic HwriteReg;                        // Buffered HWRITE
     logic HselReg;                          // Buffered HSEL
-    logic [ADDR_WIDTH - 1:0] AddressReg;    // Buffered address (for APB SETUP)
+    logic [ADDR_WIDTH - 1:0] PAddrReg;      // Buffered address HADDR
+    logic [ADDR_WIDTH - 1:0] AddressReg;    // Buffered address PADDR
     logic [DATA_WIDTH - 1:0] DataReg;       // Buffered Data
-
-    logic APBen;                            // Enable signal for new APB transcation
-    logic PenNext;                          // PEnable next
+    logic HReadyReg;                        // Buffered HREADY_OUT Signal
     logic PenReg;                           // Buffered PEnable
-    logic PSelNext;                         // PSEL based on state  
     logic PWriteReg;                        // Buffered PWrite
-    logic PWriteNext;                       // PWrite next
-    logic HReadyReg;
-    logic HReadyNext;
 
-    logic [ADDR_WIDTH - 1:0] PAddrReg;    // Buffered address (for APB SETUP)
+    logic PenNext;                          // PEnable next
+    logic PSelNext;                         // PSEL based on state  
+    logic PWriteNext;                       // PWrite next
+    logic HReadyNext;                       // HREADY_OUT next
+
 
     // State variable for state machine
     typedef enum logic [2:0] {
@@ -99,7 +98,7 @@ module ahb_to_apb_bridge #(
         endcase
     end
 
-    // Generate APBen Signal & PenNext & PSelNext
+    // Generate APBen Signal & Next output signals
     always_comb begin
         APBen = next_state == ST_READ || next_state == ST_WRITE || next_state == ST_WRITEP;
         PenNext = next_state == ST_RENABLE || next_state == ST_WENABLE || next_state == ST_WENABLEP;
@@ -120,24 +119,18 @@ module ahb_to_apb_bridge #(
             DataReg    <= 0;
             PenReg     <= 0;
         end else begin
-            if (APBen) begin
-                PWriteReg  <= PWriteNext;
-                HselReg    <= PSelNext;
-            end
-            HReadyReg  <= HReadyNext;
             PAddrReg <= HADDR;
 
             if (APBen) begin
-                if (HWRITE) AddressReg <= PAddrReg;
-                else        AddressReg <= HADDR;
+                PWriteReg  <= PWriteNext;
+                HselReg    <= PSelNext;
+                AddressReg <= HWRITE ? PAddrReg : HADDR;
             end
 
-            if(valid) begin
-                HwriteReg  <= HWRITE;
-            end
-            
+            HwriteReg  <= HWRITE;
             DataReg <= HWDATA;
             PenReg  <= PenNext;
+            HReadyReg  <= HReadyNext;
         end
     end
 
