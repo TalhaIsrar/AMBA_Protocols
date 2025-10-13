@@ -28,10 +28,22 @@ module ahb_to_apb_bridge #(
 
     // Internal Signals
     logic valid;                            // AHB transfer valid
-    logic HwriteReg;                        // Registered HWRITE
 
+    logic HwriteReg;                        // Buffered HWRITE
+    logic HselReg;                          // Buffered HSEL
     logic [ADDR_WIDTH - 1:0] AddressReg;    // Buffered address (for APB SETUP)
-    logic [DATA_WIDTH - 1:0] DataReg;       // Buffered write data
+    logic [DATA_WIDTH - 1:0] DataReg;       // Buffered Data
+
+    logic APBen;                            // Enable signal for new APB transcation
+    logic PenNext;                          // PEnable next
+    logic PenReg;                           // Buffered PEnable
+    logic PSelNext;                         // PSEL based on state  
+    logic PWriteReg;                        // Buffered PWrite
+    logic PWriteNext;                       // PWrite next
+    logic HReadyReg;
+    logic HReadyNext;
+
+    logic [ADDR_WIDTH - 1:0] PAddrReg;    // Buffered address (for APB SETUP)
 
     // State variable for state machine
     typedef enum logic [2:0] {
@@ -87,109 +99,67 @@ module ahb_to_apb_bridge #(
         endcase
     end
 
-    // Output logic
-    // Synchronous because according to spec, old values are needed
+    // Generate APBen Signal & PenNext & PSelNext
+    always_comb begin
+        APBen = next_state == ST_READ || next_state == ST_WRITE || next_state == ST_WRITEP;
+        PenNext = next_state == ST_RENABLE || next_state == ST_WENABLE || next_state == ST_WENABLEP;
+        PSelNext = next_state == ST_READ || next_state == ST_RENABLE || next_state == ST_WRITE ||
+                   next_state == ST_WENABLE || next_state == ST_WENABLEP || next_state == ST_WRITEP;
+        PWriteNext = next_state == ST_WRITE || next_state == ST_WRITEP;
+        HReadyNext = !(next_state == ST_READ || next_state == ST_WRITEP || (next_state == ST_WENABLEP && !HWRITE));
+    end
+
+    // Buffer signals
     always_ff @(posedge HCLK or negedge HRESETn) begin
         if (!HRESETn) begin
-            HRDATA      <= 0;
-            HRESP       <= 2'b00;       // Always OKAY
-            HREADY_OUT  <= 1'b1;
-            PSEL        <= 0;
-            PENABLE     <= 0;
-            PADDR       <= 0;
-            PWRITE      <= 0;
-            PWDATA      <= 0;
-            
-            // Internal Signals
-            HwriteReg   <= 0;
-            AddressReg  <= 0;
-            DataReg     <= 0;
-
+            HwriteReg  <= 0;
+            HselReg    <= 0;
+            AddressReg <= 0;
+            HReadyReg  <= 1'b1;
+            PWriteReg  <= 0;
+            DataReg    <= 0;
+            PenReg     <= 0;
         end else begin
-            if (valid) begin
-                AddressReg <= HADDR;
-                HwriteReg  <= HWRITE;
+            if (APBen) begin
+                PWriteReg  <= PWriteNext;
+                HselReg    <= PSelNext;
+            end
+            HReadyReg  <= HReadyNext;
+            PAddrReg <= HADDR;
+
+            if (APBen) begin
+                if (HWRITE) AddressReg <= PAddrReg;
+                else        AddressReg <= HADDR;
             end
 
-            HRDATA      <= PRDATA;
+            if(valid) begin
+                HwriteReg  <= HWRITE;
+            end
             
-            case (current_state) 
-                ST_IDLE: begin // Bridge is IDLE, no APB Transfer happening
-                    PSEL        <= 1'b0;
-                    PENABLE     <= 1'b0;
-                    HREADY_OUT  <= 1'b1;
-                end
-
-                ST_READ: begin // Starts APB read transcation (SETUP Phase APB)
-                    PADDR       <= HADDR;
-                    PSEL        <= 1'b1;
-                    PWRITE      <= 1'b0;
-                    HREADY_OUT  <= 1'b0; // Insert Wait state
-                    PENABLE     <= 1'b0;
-                end
-                
-                ST_RENABLE: begin // Completes APB read transcation and allows Masters to continue (ACCESS Phase APB)
-                    PENABLE     <= 1'b1;
-                    HREADY_OUT  <= 1'b1;
-                end
-
-                ST_WENABLE: begin // APB enable phase for write
-                    PENABLE     <= 1'b1;
-                    HREADY_OUT  <= 1'b1;
-                end
-
-                ST_WRITE: begin // APB Write address phase (SETUP Phase APB)
-                    PADDR       <= AddressReg; // Get write address from buffer
-                    AddressReg  <= HADDR;      // Buffer the address in case pipeline writes
-                    HwriteReg   <= 1'b1;       // Buffer write req in case write after write
-                    PWDATA      <= HWDATA;
-                    PSEL        <= 1'b1;
-                    PENABLE     <= 1'b0;
-                    PWRITE      <= 1'b1;
-                    HREADY_OUT  <= 1'b0;
-                end
-
-                ST_WWAIT: begin // Waits for AHB write data to become valid
-                    HREADY_OUT  <= 1'b0;   // Insert Wait state
-                    PENABLE     <= 1'b0;
-                end
-
-                ST_WRITEP: begin // Pending WRITE Phase after current transfer
-                    PADDR       <= AddressReg; // Get write address from buffer
-                    AddressReg  <= HADDR;      // Buffer the address in case pipeline writes
-                    HwriteReg   <= HWRITE;     // Buffer write req in case write after write
-                    PWDATA      <= HWDATA;
-                    PSEL        <= 1'b1;
-                    PENABLE     <= 1'b0;
-                    PWRITE      <= 1'b1;
-                    HREADY_OUT  <= 1'b0;
-                end
-
-                ST_WENABLEP: begin // APB enable phase for write (ACCESS Phase APB)
-                    PENABLE     <= 1'b1;
-                    HREADY_OUT  <= 1'b1;
-                end
-
-                default: begin
-                    HRDATA      <= 0;
-                    HRESP       <= 2'b00;       // Always OKAY
-                    HREADY_OUT  <= 1'b1;
-                    PSEL        <= 0;
-                    PENABLE     <= 0;
-                    PADDR       <= 0;
-                    PWRITE      <= 0;
-                    PWDATA      <= 0;
-                end
-            endcase
+            DataReg <= HWDATA;
+            PenReg  <= PenNext;
         end
+    end
+
+    // Output logic
+    always_comb begin : OUTPUT_LOGIC
+        // Default values to avoid latches
+        PWDATA      = DataReg;        
+        PENABLE     = PenReg;
+        PSEL        = HselReg;
+        PADDR       = AddressReg;
+        PWRITE      = PWriteReg;
+
+        HRESP       = 2'b00;       // Always OKAY
+        HRDATA      = PRDATA;
+        HREADY_OUT  = HReadyReg;
     end
 
     // Valid Signal Combinational Logic
     always_comb begin : VALID
         // Transaction is valid only if slave (bridge) is selected
         // & HTRANS is either NONSEQ or SEQ
-        valid = HSEL && HTRANS[1] && HREADY_IN;
+        valid = HSEL && HTRANS[1] && HREADY_OUT;
     end
-
 
 endmodule
