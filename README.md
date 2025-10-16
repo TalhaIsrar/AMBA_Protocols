@@ -11,6 +11,7 @@ The goal is to understand and model **bus-level communication protocols** widely
 * [AMBA Overview](#-amba-overview)
 * [Need for AHB-to-APB Bridge](#-need-for-ahb-to-apb-bridge)
 * [Bridge Architecture](#-bridge-architecture)
+* [Interface Description](#-interface-description)
 * [Repository Structure](#-repository-structure)
 * [Future Work](#-future-work)
 * [References](#-references)
@@ -70,7 +71,7 @@ The AHB-to-APB bridge consists of:
 - **Clock Domain crossing handshake** — Use FIFO or handshaking with synchrnoizers in case asynchrnouns bridge. (This repo has implementation of a synchrnous bridge)
 - **State Machine (FSM)** — Controls signal transitions across the two protocols.
 - **Register Stage** — Buffers data and address signals between AHB and APB domains.
-- 
+
 ![AHB2APB Bridge Block Diagram](imgs/ahb2apb_bridge_block_diagram.png)
 
 *(FSM diagram source: ARM Example AMBA System Technical Reference Manual [DDI0170])*  
@@ -103,6 +104,45 @@ It ensures correct signal sequencing for setup and enable phases of the APB, whi
 8. **ST_WENABLEP** – Manages pending transfers, inserting a wait state when a read follows a write to ensure proper sequencing.
 
 ---
+
+
+## 🔌 Interface Description
+
+The `ahb_to_apb_bridge` module connects an **AHB-Lite bus (slave interface)** to an **APB bus (master interface)**, translating AHB transactions into APB-compliant accesses.
+The following table summarizes all signal groups and their roles:
+
+---
+
+### 🧭 **AHB Slave Interface**
+
+| **Signal**   | **Direction** | **Width**    | **Description**                                                                |
+| ------------ | ------------- | ------------ | ------------------------------------------------------------------------------ |
+| `HCLK`       | Input         | 1            | AHB system clock. All AHB and APB transactions are synchronized to this clock. |
+| `HRESETn`    | Input         | 1            | Active-low reset signal for the bridge logic.                                  |
+| `HSEL`       | Input         | 1            | Indicates the bridge is selected as the current AHB slave.                     |
+| `HADDR`      | Input         | `ADDR_WIDTH` | Address bus carrying the target peripheral address.                            |
+| `HTRANS`     | Input         | 2            | Transfer type indicator: `00=IDLE`, `01=BUSY`, `10=NONSEQ`, `11=SEQ`.          |
+| `HWRITE`     | Input         | 1            | Defines transfer direction: `1=Write`, `0=Read`.                               |
+| `HWDATA`     | Input         | `DATA_WIDTH` | Write data bus from AHB master to the bridge.                                  |
+| `HRDATA`     | Output        | `DATA_WIDTH` | Read data returned from APB peripherals to AHB.                                |
+| `HRESP`      | Output        | 2            | AHB transfer response. The bridge always generates `OKAY (00)` response.       |
+| `HREADY_OUT` | Output        | 1            | Indicates completion of the current transfer and readiness for the next one.   |
+
+---
+
+### ⚙️ **APB Master Interface**
+
+| **Signal** | **Direction** | **Width**    | **Description**                                                        |
+| ---------- | ------------- | ------------ | ---------------------------------------------------------------------- |
+| `PRDATA`   | Input         | `DATA_WIDTH` | Read data returned from the selected APB slave.                        |
+| `PSEL`     | Output        | 1            | Select signal asserted high to enable a specific APB peripheral.       |
+| `PENABLE`  | Output        | 1            | Asserted high during the APB **enable** phase to signal data validity. |
+| `PADDR`    | Output        | `ADDR_WIDTH` | Address sent to the APB peripheral during a transfer.                  |
+| `PWRITE`   | Output        | 1            | Direction control: `1=Write`, `0=Read`.                                |
+| `PWDATA`   | Output        | `DATA_WIDTH` | Write data sent from AHB to the selected APB peripheral.               |
+
+---
+
 
 ## 📂 Repository Structure
 
