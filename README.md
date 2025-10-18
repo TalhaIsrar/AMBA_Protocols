@@ -1,4 +1,4 @@
-# 🧩 AMBA Protocols
+# 🧩 AMBA Protocols - AHB2APB Bridge
 
 This repository contains **SystemVerilog implementations and verification** of **AMBA (Advanced Microcontroller Bus Architecture)** protocols, currently an **AHB-to-APB bridge**.  
 The goal is to understand and model **bus-level communication protocols** widely used in SoCs for connecting high-performance and peripheral devices.
@@ -13,6 +13,8 @@ The goal is to understand and model **bus-level communication protocols** widely
 * [Bridge Architecture](#-bridge-architecture)
 * [Interface Description](#-interface-description)
 * [Repository Structure](#-repository-structure)
+* [Verification](#-verification)
+* [FPGA Resource Utilization](#-fpga-resource-utilization)
 * [Future Work](#-future-work)
 * [References](#-references)
 * [License](#-license)
@@ -160,6 +162,26 @@ LICENSE
 README.md
 
 ```
+---
+
+## ⚙️ Verification
+
+The bridge was verified with a number of tests written in System verilog. The result is shown below. More details of the test can be found at [AHB2APB Bridge Tests](tb/README.md)
+
+![AHB2APB Simulation](imgs/ahb2apb_bridge_sim.png)
+
+---
+
+## 📊 FPGA Resource Utilization
+
+* The results are Post-Implementation results for Nexys A7 (XC7A100T).
+
+| Resource        | Utilization |
+| --------------- | ----------- |
+| Slice LUTs      | 25          |
+| Slice Registers | 104         |
+
+![Utilization Summary](imgs/ahb2apb_bridge_utilization.png)
 
 ---
 
@@ -196,6 +218,5 @@ Feel free to fork the repository and submit a pull request.
 ---
 
 *Created by **Talha Israr***  
-```
 
 ---

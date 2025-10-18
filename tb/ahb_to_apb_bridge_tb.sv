@@ -340,8 +340,8 @@ module ahb_to_apb_bridge_tb;
         ahb_master_pipelined_write_read(32'h0000_0018, 32'h0000_0018,
                                         32'h1234_5678);
 
-        // Test 12: Pipelined Write followed by Read
-        ahb_master_pipelined_read_write(32'h0000_001C, 32'h0000_001C,
+        // Test 12: Pipelined Read followed by Write
+        ahb_master_pipelined_read_write(32'h0000_0004, 32'h0000_001C,
                                         32'hC0FF_EE00);
 
         repeat(5) @(posedge HCLK);
