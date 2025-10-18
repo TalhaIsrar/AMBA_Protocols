@@ -164,7 +164,7 @@ README.md
 ```
 ---
 
-## ⚙️ Verification
+## 🧭 Verification
 
 The bridge was verified with a number of tests written in System verilog. The result is shown below. More details of the test can be found at [AHB2APB Bridge Tests](tb/README.md)
 
