@@ -71,6 +71,14 @@ module ahb_to_apb_sva #(
         HSEL |-> HTRANS[1];
     endproperty
     assert property (p_ahb_valid_transfer)
-        else $warning("SVA: PTRANS[1] is not 1 when PSEL is asserted");
+        else $warning("SVA: PTRANS[1] is not 1 when HSEL is asserted");
+
+    // PENABLE must drop after 1 cycle
+    property p_apb_enable_off;
+        @(posedge HCLK) disable iff (!HRESETn)
+        PENABLE |-> ##1 !PENABLE;
+    endproperty
+    assert property (p_apb_enable_off)
+        else $error("SVA: PENABLE stayed high for more than one cycle!");
 
 endmodule
