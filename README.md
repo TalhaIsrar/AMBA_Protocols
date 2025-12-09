@@ -157,6 +157,7 @@ src/
 └── apb_mem.sv                # Simple APB memory slave
 tb/
 ├── ahb_to_apb_bridge_tb.sv   # Testbench for bridge verification
+├── ahb_to_apb_sva.sv         # System Verilog Assertions (SVA) for temporal relationship checking
 imgs/
 LICENSE
 README.md
@@ -166,7 +167,7 @@ README.md
 
 ## 🧭 Verification
 
-The bridge was verified with a number of tests written in System verilog. The result is shown below. More details of the test can be found at [AHB2APB Bridge Tests](tb/README.md)
+The bridge was verified with a number of tests written in System verilog. The result is shown below. More details of the test can be found at [AHB2APB Bridge Tests](tb/README.md). Furthermore, SVA has been used to ensure temporal relationships hold.
 
 ![AHB2APB Simulation](imgs/ahb2apb_bridge_sim.png)
 

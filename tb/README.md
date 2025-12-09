@@ -1,7 +1,7 @@
 # 🧪 AHB2APB Bridge Testbench
 
 This directory contains the **SystemVerilog testbench** used to **verify the functionality and timing behavior** of the `ahb_to_apb_bridge` module.
-The testbench simulates the transaction translation between the high-performance **AMBA AHB bus** and the low-power **APB bus**, validating data transfers, handshaking, pipelining, and idle scenarios.
+The testbench simulates the transaction translation between the high-performance **AMBA AHB bus** and the low-power **APB bus**, validating data transfers, handshaking, pipelining, and idle scenarios. System Verilog Assertions (SVA) was also used to check timing relationships between signals.
 
 ---
 
