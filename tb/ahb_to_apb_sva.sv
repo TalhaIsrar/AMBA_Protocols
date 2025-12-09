@@ -30,6 +30,15 @@ module ahb_to_apb_sva #(
         HRDATA == PRDATA;
     endproperty
     assert property (read_data_valid)
-        else $error("HRDATA is not equal to PPRDATA");
+        else $error("SVA: HRDATA is not equal to PPRDATA");
+
+    // PSEL is asserted when PENABLE is high
+    property p_enable_has_p_select;
+        @(posedge HCLK) disable iff (!HRESETn) 
+        PENABLE |-> PSEL;
+    endproperty
+    assert property (p_enable_has_p_select)
+        else $error("SVA: PSEL is asserted when PENABLE is high");
+
 
 endmodule
