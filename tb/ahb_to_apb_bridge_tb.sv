@@ -349,4 +349,25 @@ module ahb_to_apb_bridge_tb;
         $finish;
     end
 
+    bind ahb_to_apb_bridge ahb_to_apb_sva sva_checker_inst (
+        .HCLK(HCLK),
+        .HRESETn(HRESETn),
+
+        .HSEL       (ahb_bus.HSEL),
+        .HADDR      (ahb_bus.HADDR),
+        .HTRANS     (ahb_bus.HTRANS),
+        .HWRITE     (ahb_bus.HWRITE),
+        .HWDATA     (ahb_bus.HWDATA),
+        .HRDATA     (ahb_bus.HRDATA),
+        .HRESP      (ahb_bus.HRESP),
+        .HREADY_OUT (ahb_bus.HREADY_OUT),
+
+        .PRDATA     (apb_bus.PRDATA),
+        .PSEL       (apb_bus.PSEL),
+        .PENABLE    (apb_bus.PENABLE),
+        .PADDR      (apb_bus.PADDR),
+        .PWRITE     (apb_bus.PWRITE),
+        .PWDATA     (apb_bus.PWDATA)
+    );
+
 endmodule
