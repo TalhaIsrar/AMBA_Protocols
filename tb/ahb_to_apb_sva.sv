@@ -1,4 +1,7 @@
-module ahb_to_apb_sva (
+module ahb_to_apb_sva #(
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32
+)(
     input logic                     HCLK,
     input logic                     HRESETn,    // Active low reset
     input logic                     HSEL,
@@ -20,5 +23,13 @@ module ahb_to_apb_sva (
     input logic                     PWRITE,
     input logic [DATA_WIDTH - 1:0]  PWDATA
 );
+
+    // Ensure HRDATA = PRDATA
+    property read_data_valid;
+        @(posedge HCLK) disable iff (!HRESETn) 
+        HRDATA == PRDATA;
+    endproperty
+    assert property (read_data_valid)
+        else $error("HRDATA is not equal to PPRDATA");
 
 endmodule
