@@ -55,7 +55,7 @@ module ahb_to_apb_sva #(
         ($fell(HSEL) && HTRANS[1] && HWRITE) |=> ##[1:$] PENABLE |-> PWRITE;
     endproperty
     assert property (p_ahb_write_to_apb_write)
-        else $fatal("SVA: APB PENABLE went high but PWRITE went low when HWRITE was high");
+        else $error("SVA: APB PENABLE went high but PWRITE went low when HWRITE was high");
 
     // HWRITE followed by PWRITE at proper time at some point in future when PENABLE = 1
     property p_ahb_write_to_apb_write_opposite;
@@ -63,6 +63,14 @@ module ahb_to_apb_sva #(
         ($fell(HSEL) && HTRANS[1] && !HWRITE) |=> ##[1:$] PENABLE |-> !PWRITE;
     endproperty
     assert property (p_ahb_write_to_apb_write_opposite)
-        else $fatal("SVA: APB PENABLE went high but PWRITE went high when HWRITE was low");
+        else $error("SVA: APB PENABLE went high but PWRITE went high when HWRITE was low");
+
+    // Ensure valid transfer
+    property p_ahb_valid_transfer;
+        @(posedge HCLK) disable iff (!HRESETn)
+        HSEL |-> HTRANS[1];
+    endproperty
+    assert property (p_ahb_valid_transfer)
+        else $warning("SVA: PTRANS[1] is not 1 when PSEL is asserted");
 
 endmodule
