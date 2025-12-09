@@ -40,5 +40,12 @@ module ahb_to_apb_sva #(
     assert property (p_enable_has_p_select)
         else $error("SVA: PSEL is asserted when PENABLE is high");
 
+    // Ensure PADDR is stable if PSEL and PENABLE = 1
+    property stable_paddr;
+        @(posedge HCLK) disable iff (!HRESETn)
+        (PSEL && PENABLE) |-> $stable(PADDR);
+    endproperty
+    assert property (stable_paddr)
+        else $error("SVA: PADDR is not stable when PENABLE & PSEL = 1");
 
 endmodule
