@@ -45,7 +45,17 @@ module ahb_to_apb_sva #(
         @(posedge HCLK) disable iff (!HRESETn)
         (PSEL && PENABLE) |-> $stable(PADDR);
     endproperty
+
     assert property (stable_paddr)
         else $error("SVA: PADDR is not stable when PENABLE & PSEL = 1");
+
+    // HWRITE followed by PWRITE at proper time
+    property p_ahb_write_to_apb_write;
+        @(posedge HCLK) disable iff (!HRESETn)
+        ($fell(HSEL) && HTRANS[1] && HWRITE) |=> ##[1:$] PENABLE |-> PWRITE;
+    endproperty
+    assert property (p_ahb_write_to_apb_write)
+        else $fatal("SVA: APB PENABLE went high but PWRITE did not match HWRITE");
+
 
 endmodule
