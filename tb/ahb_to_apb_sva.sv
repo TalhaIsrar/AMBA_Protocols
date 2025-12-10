@@ -89,4 +89,24 @@ module ahb_to_apb_sva #(
     assert property (p_sel_after_h_sel)
         else $error("SVA: PSEL did not go high after HSEL came");
 
+    // PADDR is correctly changed after HSEL comes
+    logic [31:0] haddr_latched;
+
+    always @(posedge HCLK or negedge HRESETn) begin
+        if (!HRESETn)
+            haddr_latched <= 32'h0;
+        else if ($fell(HSEL) && HTRANS[1])
+            haddr_latched <= HADDR;
+    end
+
+    property p_write_addr_follow;
+        @(posedge HCLK) disable iff (!HRESETn)
+        ($fell(HSEL) && HTRANS[1])
+            |=> ##[1:$] ($changed(PADDR) && (PADDR == haddr_latched));
+    endproperty
+
+    assert property (p_write_addr_follow)
+        else $fatal("SVA: When HWRITE occurred, PADDR did not match HADDR when it changed");
+
+
 endmodule
