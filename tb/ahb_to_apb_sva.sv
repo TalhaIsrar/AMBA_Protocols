@@ -90,23 +90,40 @@ module ahb_to_apb_sva #(
         else $error("SVA: PSEL did not go high after HSEL came");
 
     // PADDR is correctly changed after HSEL comes
-    logic [31:0] haddr_latched;
-
+    logic [31:0] haddr_buffer;
     always @(posedge HCLK or negedge HRESETn) begin
         if (!HRESETn)
-            haddr_latched <= 32'h0;
+            haddr_buffer <= 32'h0;
         else if ($fell(HSEL) && HTRANS[1])
-            haddr_latched <= HADDR;
+            haddr_buffer <= HADDR;
     end
 
     property p_write_addr_follow;
         @(posedge HCLK) disable iff (!HRESETn)
         ($fell(HSEL) && HTRANS[1])
-            |=> ##[1:$] ($changed(PADDR) && (PADDR == haddr_latched));
+            |=> ##[1:$] ($changed(PADDR) && (PADDR == haddr_buffer));
     endproperty
 
     assert property (p_write_addr_follow)
         else $fatal("SVA: When HWRITE occurred, PADDR did not match HADDR when it changed");
+
+    // PWDATA is correctly changed after HSEL comes
+    logic [31:0] hwdata_buffer;
+    always @(posedge HCLK or negedge HRESETn) begin
+        if (!HRESETn)
+            hwdata_buffer <= 32'h0;
+        else if ($fell(HSEL) && HTRANS[1] & HWRITE)
+            hwdata_buffer <= HWDATA;
+    end
+
+    property pwdata_is_valid;
+        @(posedge HCLK) disable iff (!HRESETn)
+        ($fell(HSEL) && HTRANS[1] & HWRITE)
+            |=> ##[1:$] ($changed(PWDATA) && (PWDATA == hwdata_buffer));
+    endproperty
+
+    assert property (pwdata_is_valid)
+        else $fatal("SVA: Correct value of PWDATA is set on write operation");
 
 
 endmodule
