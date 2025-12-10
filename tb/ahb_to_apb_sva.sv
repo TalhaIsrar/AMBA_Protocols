@@ -81,4 +81,12 @@ module ahb_to_apb_sva #(
     assert property (p_apb_enable_off)
         else $error("SVA: PENABLE stayed high for more than one cycle!");
 
+    // PSEL is followed in future after HSEL
+    property p_sel_after_h_sel;
+        @(posedge HCLK) disable iff (!HRESETn)
+        ($fell(HSEL) && HTRANS[1] && HWRITE) |=> ##[1:$] PSEL;
+    endproperty
+    assert property (p_sel_after_h_sel)
+        else $error("SVA: PSEL did not go high after HSEL came");
+
 endmodule
