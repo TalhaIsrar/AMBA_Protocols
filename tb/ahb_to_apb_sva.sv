@@ -105,7 +105,7 @@ module ahb_to_apb_sva #(
     endproperty
 
     assert property (p_write_addr_follow)
-        else $fatal("SVA: When HWRITE occurred, PADDR did not match HADDR when it changed");
+        else $error("SVA: When HWRITE occurred, PADDR did not match HADDR when it changed");
 
     // PWDATA is correctly changed after HSEL comes
     logic [31:0] hwdata_buffer;
@@ -123,7 +123,17 @@ module ahb_to_apb_sva #(
     endproperty
 
     assert property (pwdata_is_valid)
-        else $fatal("SVA: Correct value of PWDATA is set on write operation");
+        else $error("SVA: Correct value of PWDATA is set on write operation");
+
+    // HRDATA changes when we have read request
+    property p_read_completion_hrdata_changes;
+    @(posedge HCLK) disable iff (!HRESETn)
+        ($fell(HSEL) && (HWRITE == 1'b0))
+        |-> ( (!$rose(HSEL)) [*0:$] ##1 $changed(HRDATA) );
+    endproperty
+
+    assert property(p_read_completion_hrdata_changes)
+        else $error("SVA: HRDATA did not change between HSEL falling and next rising edge for a READ transfer.");
 
 
 endmodule
